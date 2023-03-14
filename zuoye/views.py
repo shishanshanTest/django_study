@@ -1,4 +1,4 @@
-from django.db.models import Sum, Avg
+from django.db.models import Sum, Avg, Count, Q, F
 from django.db import connection
 from django.shortcuts import render
 
@@ -46,16 +46,92 @@ def zuoye(requests):
 
 # 查询平均成绩大于60分的同学的id和平均成绩；
 def index(request):
-    results = Score.objects.values('student_id').annotate(score_avg=Avg('number')).filter(number__gte=60)
-    for result in results:
-        print(result)
-        print(type(result))
-
-    print(connection.queries)
+    students = Student.objects.annotate(score_avg=Avg('score__number')).filter(score_avg__gt=60).values('id',
+                                                                                                        'score_avg')
+    for student in students:
+        print(student)
     return HttpResponse('index')
 
 
 # 查询所有同学的id、姓名、选课的数量、总成绩；
 def index1(request):
-    result = Student.objects.select_related('score')
+    students = Student.objects.annotate(score_num=Count('score__course_id'), score_sum=Sum('score__number')).values(
+        'id', 'name', 'score_num', 'score_sum')
+    for student in students:
+        print(student)
     return HttpResponse('index1')
+
+
+# 查询姓“李”的老师的个数；
+def index2(request):
+    # teachers = Teacher.objects.filter(name__contains='李') # 包含“李”字的
+    teachers = Teacher.objects.filter(name__startswith='李')  # 以“李”开头的
+    for teacher in teachers:
+        print(teacher.id, teacher.name)
+    print(connection.queries[-1])
+    return HttpResponse('index2')
+
+
+# 查询没学过“李老师”课的同学的id、姓名；
+def index3(request):
+    # teacher = Teacher.objects.filter(Q(name='李老师'))
+    # students = Student.objects.filter(score__course_id__in=teacher.id)
+    # # students = Student.objects.filter(score__course__teacher_id__in=teacher)
+    # for student in students:
+    #     print(student.id, student.name)
+    # print(connection.queries[-1])
+    # students = Student.objects.filter(
+    #     score__course_id_in=Course.objects.filter(teacher_id=Teacher.objects.filter(name="李老师")))
+    # for student in students:
+    #     print(student)
+    teachers = Teacher.objects.filter(name='李老师').values('id')
+    print(type(teachers))  # <class 'django.db.models.query.QuerySet'>
+    students = Student.objects.exclude(score__course__teacher_id__in=teachers)
+    # exclude 排除满足条件的数据，返回一个新的queryset
+
+    for student in students:
+        print(student.id, student.name)
+    print(connection.queries[-1])
+    return HttpResponse('index3')
+
+
+# 查询学过课程id为1和2的所有同学的id、姓名；
+def index4(request):
+    # students = Student.objects.filter(score__course_id__in=[1, 2]).values('id','name')
+    students = Student.objects.filter(score__course_id__in=[1, 2]).values('id', 'name').distinct()
+    for student in students:
+        print(student)
+    print(connection.queries[-1])
+    return HttpResponse('index4')
+
+
+# 查询学过“黄老师”所教的“所有课”的同学的id、姓名；
+def index5(request):
+    teacher = Teacher.objects.filter(name='黄老师').values('id')
+    students = Student.objects.filter(score__course__teacher_id__in=teacher).values('id', 'name').distinct()
+    for student in students:
+        print(student)
+    print(connection.queries[-1])
+    return HttpResponse('index5')
+
+
+# 查询所有课程成绩小于60分的同学的id和姓名；
+def index6(request):
+    students = Student.objects.filter(score__number__lt=60).values('id', 'name', 'score__course_id')
+    for student in students:
+        print(student)
+    print(connection.queries[-1])
+    return HttpResponse('index6')
+
+
+# 查询没有学全所有课的同学的id、姓名；
+def index7(request):
+    # teacher_count = Teacher.objects.annotate(teacher_count=Count('teacher_id')).values('teacher_count')
+    course_count = Course.objects.count()
+    print(course_count, type(course_count))
+    students = Student.objects.annotate(course_count=Count('score__course_id')).exclude(
+        course_count=course_count).values('id', 'name')
+    for student in students:
+        print(student)
+    print(connection.queries[-1])
+    return HttpResponse('index7')
