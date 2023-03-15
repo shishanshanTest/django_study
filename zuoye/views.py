@@ -1,6 +1,7 @@
-from django.db.models import Sum, Avg, Count, Q, F
+from django.db.models import Sum, Avg, Count, Q, F, Max, Min
 from django.db import connection
 from django.shortcuts import render
+from django.core.handlers.wsgi import WSGIRequest
 
 # Create your views here.
 from django.http.response import HttpResponse
@@ -74,24 +75,20 @@ def index2(request):
 
 # 查询没学过“李老师”课的同学的id、姓名；
 def index3(request):
-    # teacher = Teacher.objects.filter(Q(name='李老师'))
-    # students = Student.objects.filter(score__course_id__in=teacher.id)
-    # # students = Student.objects.filter(score__course__teacher_id__in=teacher)
-    # for student in students:
-    #     print(student.id, student.name)
-    # print(connection.queries[-1])
-    # students = Student.objects.filter(
-    #     score__course_id_in=Course.objects.filter(teacher_id=Teacher.objects.filter(name="李老师")))
-    # for student in students:
-    #     print(student)
-    teachers = Teacher.objects.filter(name='李老师').values('id')
-    print(type(teachers))  # <class 'django.db.models.query.QuerySet'>
-    students = Student.objects.exclude(score__course__teacher_id__in=teachers)
+    # 自己
+    # teachers = Teacher.objects.filter(name='李老师').values('id')
+    # print(type(teachers))  # <class 'django.db.models.query.QuerySet'>
+    # students = Student.objects.exclude(score__course__teacher_id__in=teachers)
     # exclude 排除满足条件的数据，返回一个新的queryset
 
+    # 老师
+    students = Student.objects.exclude(score__course__teacher__name='李老师').values('id', 'name')
+    # 可以通过下划线一直联表
     for student in students:
-        print(student.id, student.name)
-    print(connection.queries[-1])
+        print(student)
+    for sql in connection.queries:
+        print(sql)
+        print('*' * 30)
     return HttpResponse('index3')
 
 
@@ -107,11 +104,18 @@ def index4(request):
 
 # 查询学过“黄老师”所教的“所有课”的同学的id、姓名；
 def index5(request):
-    teacher = Teacher.objects.filter(name='黄老师').values('id')
-    students = Student.objects.filter(score__course__teacher_id__in=teacher).values('id', 'name').distinct()
+    # teacher = Teacher.objects.filter(name='黄老师').values('id')
+    # students = Student.objects.filter(score__course__teacher_id__in=teacher).values('id', 'name').distinct()
+    # for student in students:
+    #     print(student)
+
+    students = Student.objects.filter(score__course__teacher__name='黄老师').values('id', 'name').distinct()
     for student in students:
         print(student)
-    print(connection.queries[-1])
+
+    for sql in connection.queries:
+        print(sql)
+        print('*' * 30)
     return HttpResponse('index5')
 
 
@@ -135,3 +139,88 @@ def index7(request):
         print(student)
     print(connection.queries[-1])
     return HttpResponse('index7')
+
+
+# 查询所有学生的姓名、平均分，并且按照平均分从高到低排序；
+def index8(request):
+    students = Student.objects.annotate(score_avg=Avg('score__number')).values('id', 'score_avg').order_by('-score_avg')
+    for student in students:
+        print(student)
+    for sql in connection.queries:
+        print(sql)
+        print('*' * 30)
+    return HttpResponse('index8')
+
+
+# 查询各科成绩的最高和最低分，以如下形式显示：课程ID，课程名称，最高分，最低分；
+def index9(request):
+    courses = Course.objects.annotate(max_number=Max('score__number'), min_number=Min('score__number')).values('id',
+                                                                                                               'name',
+                                                                                                               'max_number',
+                                                                                                               'min_number')
+    for course in courses:
+        print(course)
+    return HttpResponse('index9')
+
+
+# 查询每门课程的平均成绩，按照平均成绩进行排序；
+def index10(request):
+    coureses = Course.objects.annotate(course_avg=Avg('score__number')).order_by('course_avg')
+    for courese in coureses:
+        print(courese.course_avg)
+    for sql in connection.queries:
+        print(sql)
+        print('*' * 30)
+    return HttpResponse('index10')
+
+
+# 统计总共有多少女生，多少男生；
+def index11(request):
+    # max_num = Student.objects.filter(gendet=1).count()
+    # nv_num = Student.objects.filter(gendet=2).count()
+    # print(max_num, nv_num)
+
+    rows = Student.objects.aggregate(nan_num=Count('gendet', filter=Q(gendet=1)),
+                                     nv_num=Count('gendet', filter=Q(gendet=2)))
+    print(rows)
+    for sql in connection.queries:
+        print(sql)
+        print('*' * 30)
+    return HttpResponse('index11')
+
+
+# 将“黄老师”的每一门课程都在原来的基础之上加5分；
+def index12(request):
+    # 自己
+    # course_ids = Course.objects.filter(teacher__name='黄老师').values('id')
+    # Score.objects.filter(course_id__in=course_ids).update(number=F('number') + 5)
+
+    # 老师
+    Score.objects.filter(course__teacher__name="黄老师").update(number=F('number')+5)
+    return HttpResponse('index12')
+
+
+# 查询两门以上不及格的同学的id、姓名、以及不及格课程数；
+def index13(request):
+    students1 = Student.objects.filter(score__number__lt=60).annotate(bjg_num=Count('score__number')).filter(
+        bjg_num__gt=2)
+
+    for student in students1:
+        print(student.id, student.name, student.bjg_num)
+    for sql in connection.queries:
+        print(sql)
+        print('*' * 30)
+    return HttpResponse('index13')
+
+
+# 查询每门课的选课人数；
+def index14(request):
+    nums = Course.objects.annotate(num=Count('score__student_id')).values('score__course_id', 'score__course__name',
+                                                                          'num')
+    for num in nums:
+        print(num)
+    print(nums)
+    for sql in connection.queries:
+        print(sql)
+        print('*' * 30)
+    return HttpResponse('index14')
