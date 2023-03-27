@@ -196,7 +196,7 @@ def index12(request):
     # Score.objects.filter(course_id__in=course_ids).update(number=F('number') + 5)
 
     # 老师
-    Score.objects.filter(course__teacher__name="黄老师").update(number=F('number')+5)
+    Score.objects.filter(course__teacher__name="黄老师").update(number=F('number') + 5)
     return HttpResponse('index12')
 
 
@@ -223,4 +223,7 @@ def index14(request):
     for sql in connection.queries:
         print(sql)
         print('*' * 30)
+
+    for key, value in request.META.items():
+        print("{}:{}".format(key, value))
     return HttpResponse('index14')
