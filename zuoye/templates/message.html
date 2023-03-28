@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>留言板</title>
+</head>
+<body>
+    <h1>留言板</h1>
+    {% for message in messages %}
+        <div class="message">
+            <h2>{{ message.title }}</h2>
+            <p>{{ message.content }}</p>
+            <p class="email">{{ message.email }}</p>
+            {% if message.reply %}
+                <p class="reply">已回复</p>
+            {% else %}
+                <p class="reply">未回复</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+    <h2>留言</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label for="{{ form.title.id_for_label }}">标题：</label>
+        {{ form.title }}
+        <br>
+        <label for="{{ form.content.id_for_label }}">内容：</label>
+        {{ form.content }}
+        <br>
+        <label for="{{ form.email.id_for_label }}">邮箱：</label>
+        {{ form.email }}
+        <br>
+        <label for="{{ form.reply.id_for_label }}">是否回复：</label>
+        {{ form.reply }}
+        <br>
+        <button type="submit">提交</button>
+    </form>
+</body>
+</html>

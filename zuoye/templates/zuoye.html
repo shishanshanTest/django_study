@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+{% block content %}
+    <h1>My Models</h1>
+    <ul>
+        {% for mymodel in mymodels %}
+            <li>{{ mymodel.name }}</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+</body>
+</html>

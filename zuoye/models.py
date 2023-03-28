@@ -33,3 +33,14 @@ class Teacher(models.Model):
 
     class Meta:
         db_table = 'teacher'
+
+
+class Message(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    email = models.EmailField()
+    reply = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title

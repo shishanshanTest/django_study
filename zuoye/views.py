@@ -5,11 +5,13 @@ from django.core.handlers.wsgi import WSGIRequest
 
 # Create your views here.
 from django.http.response import HttpResponse
+from django.views import View
+
 from .models import Teacher, Student, Score, Course
 
 
 def zuoye(requests):
-    return HttpResponse('这是作业的首页')
+    return render(requests, 'zuoye.html')
 
 
 """
@@ -227,3 +229,47 @@ def index14(request):
     for key, value in request.META.items():
         print("{}:{}".format(key, value))
     return HttpResponse('index14')
+
+
+from .forms import MessageBoardForm
+
+# class Message(View):
+#     def get(self, request):
+#         form = MessageBoardForm()
+#         return render(request, 'index.html', {'from': form})
+#
+#     def post(self, request):
+#         message_form = MessageBoardForm(request.POST)
+#         if message_form.is_valid():
+#             title = message_form.cleaned_data.get('title')
+#             content = message_form.cleaned_data.get('content')
+#             email = message_form.cleaned_data.get('email')
+#             reply = message_form.cleaned_data.get('reply')
+#             return render(request, 'index.html', {'from': message_form})
+#         else:
+#             return HttpResponse('fail')
+
+from django.shortcuts import render, redirect
+from django.views import View
+from .forms import MessageBoardForm
+from .models import Message
+
+
+class MessageView(View):
+    def get(self, request):
+        form = MessageBoardForm()
+        messages = Message.objects.all()
+        return render(request, 'message.html', {'form': form, 'messages': messages})
+
+    def post(self, request):
+        message_form = MessageBoardForm(request.POST)
+        if message_form.is_valid():
+            title = message_form.cleaned_data.get('title')
+            content = message_form.cleaned_data.get('content')
+            email = message_form.cleaned_data.get('email')
+            reply = message_form.cleaned_data.get('reply')
+            message = Message(title=title, content=content, email=email, reply=reply)
+            message.save()
+            return redirect('message')
+        else:
+            return HttpResponse('fail')

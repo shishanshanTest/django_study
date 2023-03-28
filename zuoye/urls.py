@@ -20,4 +20,5 @@ urlpatterns = [
     path('index12/', views.index12, name='index12'),
     path('index13/', views.index13, name='index13'),
     path('index14/', views.index14, name='index14'),
+    path('message/', views.MessageView.as_view(), name='message'),
 ]
