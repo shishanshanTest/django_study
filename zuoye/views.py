@@ -272,4 +272,4 @@ class MessageView(View):
             message.save()
             return redirect('message')
         else:
-            return HttpResponse('fail')
+            return HttpResponse('fail错误')
